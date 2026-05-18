@@ -1,4 +1,4 @@
-// models/user_model.dart
+// lib/models/user_model.dart
 class UserModel {
   final String id;
   final String email;
@@ -43,4 +43,7 @@ class UserModel {
       'created_at': createdAt.toIso8601String(),
     };
   }
+
+  bool get isAdmin => role == 'admin';
+  bool get isStudent => role == 'student';
 }
