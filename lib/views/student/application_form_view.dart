@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/application_viewmodel.dart';
 import '../../routes/route_manager.dart';
+import '../widgets/module_selector.dart';
 
 class ApplicationFormView extends StatefulWidget {
   final String? applicationId;
@@ -18,44 +19,16 @@ class _ApplicationFormViewState extends State<ApplicationFormView> {
   final _fullNameController = TextEditingController();
   final _studentNumberController = TextEditingController();
 
-  String? _selectedModule1Level;
-  String? _selectedModule1Name;
-  bool _hasSecondModule = false;
-  String? _selectedModule2Level;
-  String? _selectedModule2Name;
+  List<Map<String, String>> _selectedModules = [];
   bool _meetsRequirements = false;
   int _yearOfStudy = 1;
   bool _isEditMode = false;
   bool _isSubmitting = false;
 
-  final List<String> _levels = ['first-year', 'second-year', 'third-year'];
-
-  final Map<String, List<String>> _modulesByLevel = {
-    'first-year': ['TPG316C', 'SOD316C', 'CMN316C', 'ITS316C'],
-    'second-year': ['PRG216C', 'DBS216C', 'WEB216C', 'SYS216C'],
-    'third-year': ['PRJ316C', 'ADV316C', 'Mob316C', 'NWK316C'],
-  };
-
-  final Map<String, String> _moduleNames = {
-    'TPG316C': 'Programming Fundamentals',
-    'SOD316C': 'Software Development',
-    'CMN316C': 'Communication Skills',
-    'ITS316C': 'Information Systems',
-    'PRG216C': 'Advanced Programming',
-    'DBS216C': 'Database Systems',
-    'WEB216C': 'Web Development',
-    'SYS216C': 'Systems Analysis',
-    'PRJ316C': 'Project Management',
-    'ADV316C': 'Advanced Databases',
-    'Mob316C': 'Mobile Development',
-    'NWK316C': 'Networking',
-  };
-
   @override
   void initState() {
     super.initState();
     _isEditMode = widget.applicationId != null;
-    _selectedModule1Level = 'first-year';
     if (_isEditMode) {
       _loadApplicationData();
     }
@@ -68,13 +41,7 @@ class _ApplicationFormViewState extends State<ApplicationFormView> {
       _fullNameController.text = application.fullName;
       _studentNumberController.text = application.studentNumber;
       _yearOfStudy = application.yearOfStudy;
-      _selectedModule1Level = application.module1Level;
-      _selectedModule1Name = application.module1Name;
-      _hasSecondModule = application.hasSecondModule;
-      if (_hasSecondModule) {
-        _selectedModule2Level = application.module2Level;
-        _selectedModule2Name = application.module2Name;
-      }
+      _selectedModules = List.from(application.modules);
       _meetsRequirements = application.meetsRequirements;
     }
   }
@@ -87,7 +54,26 @@ class _ApplicationFormViewState extends State<ApplicationFormView> {
   }
 
   Future<void> _submitApplication() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill in all required fields'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    if (_selectedModules.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select at least one module'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     if (!_meetsRequirements) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -110,24 +96,16 @@ class _ApplicationFormViewState extends State<ApplicationFormView> {
           fullName: _fullNameController.text.trim(),
           studentNumber: _studentNumberController.text.trim(),
           yearOfStudy: _yearOfStudy,
-          module1Level: _selectedModule1Level!,
-          module1Name: _selectedModule1Name!,
-          module2Level: _hasSecondModule ? _selectedModule2Level : null,
-          module2Name: _hasSecondModule ? _selectedModule2Name : null,
+          modules: _selectedModules,
           meetsRequirements: _meetsRequirements,
-          hasSecondModule: _hasSecondModule,
         );
       } else {
         success = await appVM.addApplication(
           fullName: _fullNameController.text.trim(),
           studentNumber: _studentNumberController.text.trim(),
           yearOfStudy: _yearOfStudy,
-          module1Level: _selectedModule1Level!,
-          module1Name: _selectedModule1Name!,
-          module2Level: _hasSecondModule ? _selectedModule2Level : null,
-          module2Name: _hasSecondModule ? _selectedModule2Name : null,
+          modules: _selectedModules,
           meetsRequirements: _meetsRequirements,
-          hasSecondModule: _hasSecondModule,
         );
       }
 
@@ -212,102 +190,24 @@ class _ApplicationFormViewState extends State<ApplicationFormView> {
               ),
               const SizedBox(height: 24),
 
-              // Module 1 Section
-              _buildSectionHeader(
-                'Module 1 Application (Required)',
-                Icons.book,
+              // Modules Section (3+ modules)
+              _buildSectionHeader('Modules Selection', Icons.book),
+              const SizedBox(height: 8),
+              const Text(
+                'Select the modules you want to assist with (minimum 1, maximum 5)',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _selectedModule1Level,
-                decoration: const InputDecoration(
-                  labelText: 'Academic Level',
-                  border: OutlineInputBorder(),
-                ),
-                items: _levels.map((level) {
-                  return DropdownMenuItem(
-                    value: level,
-                    child: Text(level.replaceAll('-', ' ').toUpperCase()),
-                  );
-                }).toList(),
-                onChanged: (v) {
+
+              ModuleSelector(
+                selectedModules: _selectedModules,
+                onModulesChanged: (newModules) {
                   setState(() {
-                    _selectedModule1Level = v;
-                    _selectedModule1Name = null;
+                    _selectedModules = newModules;
                   });
                 },
-                validator: (v) => v == null ? 'Select level' : null,
               ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _selectedModule1Name,
-                decoration: const InputDecoration(
-                  labelText: 'Module',
-                  border: OutlineInputBorder(),
-                ),
-                items: _selectedModule1Level != null
-                    ? (_modulesByLevel[_selectedModule1Level] ?? []).map((
-                        code,
-                      ) {
-                        return DropdownMenuItem(
-                          value: code,
-                          child: Text('$code - ${_moduleNames[code]}'),
-                        );
-                      }).toList()
-                    : [],
-                onChanged: (v) => setState(() => _selectedModule1Name = v),
-                validator: (v) => v == null ? 'Select module' : null,
-              ),
-              const SizedBox(height: 24),
 
-              // Module 2 Section (Optional)
-              CheckboxListTile(
-                title: const Text('Apply for a second module (Optional)'),
-                value: _hasSecondModule,
-                onChanged: (v) => setState(() => _hasSecondModule = v ?? false),
-                controlAffinity: ListTileControlAffinity.leading,
-              ),
-              if (_hasSecondModule) ...[
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  value: _selectedModule2Level,
-                  decoration: const InputDecoration(
-                    labelText: 'Academic Level (Module 2)',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: _levels.map((level) {
-                    return DropdownMenuItem(
-                      value: level,
-                      child: Text(level.replaceAll('-', ' ').toUpperCase()),
-                    );
-                  }).toList(),
-                  onChanged: (v) {
-                    setState(() {
-                      _selectedModule2Level = v;
-                      _selectedModule2Name = null;
-                    });
-                  },
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  value: _selectedModule2Name,
-                  decoration: const InputDecoration(
-                    labelText: 'Module (Module 2)',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: _selectedModule2Level != null
-                      ? (_modulesByLevel[_selectedModule2Level] ?? []).map((
-                          code,
-                        ) {
-                          return DropdownMenuItem(
-                            value: code,
-                            child: Text('$code - ${_moduleNames[code]}'),
-                          );
-                        }).toList()
-                      : [],
-                  onChanged: (v) => setState(() => _selectedModule2Name = v),
-                ),
-              ],
               const SizedBox(height: 24),
 
               // Eligibility Section
@@ -315,7 +215,7 @@ class _ApplicationFormViewState extends State<ApplicationFormView> {
               const SizedBox(height: 16),
               CheckboxListTile(
                 title: const Text(
-                  'I confirm that I meet the minimum requirements (minimum 65% average in the selected module(s))',
+                  'I confirm that I meet the minimum requirements (minimum 65% average in the selected modules)',
                 ),
                 value: _meetsRequirements,
                 onChanged: (v) =>

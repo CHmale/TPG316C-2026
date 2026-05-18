@@ -23,28 +23,32 @@ class AdminViewModel extends ChangeNotifier {
 
   Future<void> fetchAllApplications() async {
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
 
     try {
       final response = await _supabase
           .from('applications')
-          .select()
+          .select('*')
           .order('submitted_at', ascending: false);
 
-      _allApplications = response
-          .map((json) => ApplicationModel.fromJson(json))
-          .toList();
+      print('Admin: Fetched ${response.length} applications');
+
+      _allApplications = response.map((json) {
+        print('   - ${json['full_name']} (${json['status']})');
+        return ApplicationModel.fromJson(json);
+      }).toList();
     } catch (e) {
       _errorMessage = e.toString();
+      print('Error fetching applications: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  Future<bool> updateApplicationStatus({
-    required String applicationId,
-    required String newStatus,
+  Future<bool> approveApplication(
+    String applicationId, {
     String? comments,
   }) async {
     _isLoading = true;
@@ -54,8 +58,8 @@ class AdminViewModel extends ChangeNotifier {
       await _supabase
           .from('applications')
           .update({
-            'status': newStatus,
-            'admin_comments': comments,
+            'status': 'approved',
+            'admin_comments': comments ?? 'Application approved.',
             'updated_at': DateTime.now().toIso8601String(),
           })
           .match({'id': applicationId});
@@ -71,26 +75,32 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
-  Future<bool> approveApplication(
-    String applicationId, {
-    String? comments,
-  }) async {
-    return updateApplicationStatus(
-      applicationId: applicationId,
-      newStatus: 'approved',
-      comments: comments ?? 'Application approved.',
-    );
-  }
-
   Future<bool> rejectApplication(
     String applicationId, {
     required String reason,
   }) async {
-    return updateApplicationStatus(
-      applicationId: applicationId,
-      newStatus: 'rejected',
-      comments: reason,
-    );
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _supabase
+          .from('applications')
+          .update({
+            'status': 'rejected',
+            'admin_comments': reason,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .match({'id': applicationId});
+
+      await fetchAllApplications();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<bool> deleteApplication(String applicationId) async {

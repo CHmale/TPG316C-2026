@@ -53,33 +53,65 @@ class ApplicationDetailView extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
 
-                // Module 1 Application
+                // Selected Modules
                 _buildInfoCard(
-                  title: 'Module 1 Application',
+                  title: 'Selected Modules (${application.moduleCount})',
                   icon: Icons.book,
                   children: [
-                    _buildInfoRow(
-                      'Academic Level',
-                      _getLevelString(application.module1Level),
-                    ),
-                    _buildInfoRow('Module', application.module1Name),
+                    ...application.modules.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final module = entry.value;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 28,
+                              height: 28,
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade100,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '${index + 1}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue.shade700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    module['name'] ?? '',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                  Text(
+                                    _getLevelString(module['level'] ?? ''),
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
                   ],
                 ),
-                const SizedBox(height: 16),
-
-                // Module 2 Application (if exists)
-                if (application.hasSecondModule)
-                  _buildInfoCard(
-                    title: 'Module 2 Application',
-                    icon: Icons.book_outlined,
-                    children: [
-                      _buildInfoRow(
-                        'Academic Level',
-                        _getLevelString(application.module2Level ?? ''),
-                      ),
-                      _buildInfoRow('Module', application.module2Name ?? ''),
-                    ],
-                  ),
                 const SizedBox(height: 16),
 
                 // Eligibility
@@ -98,7 +130,7 @@ class ApplicationDetailView extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
 
-                // Admin Comments (if any)
+                // Admin Comments
                 if (application.adminComments != null &&
                     application.adminComments!.isNotEmpty)
                   _buildInfoCard(

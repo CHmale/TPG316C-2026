@@ -49,17 +49,14 @@ class ApplicationViewModel extends ChangeNotifier {
     }
   }
 
-  // Add new application
+  // Add these methods (replace existing addApplication and updateApplication)
+
   Future<bool> addApplication({
     required String fullName,
     required String studentNumber,
     required int yearOfStudy,
-    required String module1Level,
-    required String module1Name,
-    String? module2Level,
-    String? module2Name,
+    required List<Map<String, String>> modules,
     required bool meetsRequirements,
-    required bool hasSecondModule,
   }) async {
     _isLoading = true;
     _errorMessage = null;
@@ -85,10 +82,7 @@ class ApplicationViewModel extends ChangeNotifier {
         'full_name': fullName,
         'student_number': studentNumber,
         'year_of_study': yearOfStudy,
-        'module1_level': module1Level,
-        'module1_name': module1Name,
-        'module2_level': hasSecondModule ? module2Level : null,
-        'module2_name': hasSecondModule ? module2Name : null,
+        'modules': modules,
         'meets_requirements': meetsRequirements,
         'status': 'pending',
         'submitted_at': DateTime.now().toIso8601String(),
@@ -108,18 +102,13 @@ class ApplicationViewModel extends ChangeNotifier {
     }
   }
 
-  // UPDATE APPLICATION - FIXED VERSION
   Future<bool> updateApplication({
     required String id,
     required String fullName,
     required String studentNumber,
     required int yearOfStudy,
-    required String module1Level,
-    required String module1Name,
-    String? module2Level,
-    String? module2Name,
+    required List<Map<String, String>> modules,
     required bool meetsRequirements,
-    required bool hasSecondModule,
   }) async {
     _isLoading = true;
     _errorMessage = null;
@@ -136,10 +125,7 @@ class ApplicationViewModel extends ChangeNotifier {
         'full_name': fullName,
         'student_number': studentNumber,
         'year_of_study': yearOfStudy,
-        'module1_level': module1Level,
-        'module1_name': module1Name,
-        'module2_level': hasSecondModule ? module2Level : null,
-        'module2_name': hasSecondModule ? module2Name : null,
+        'modules': modules,
         'meets_requirements': meetsRequirements,
         'updated_at': DateTime.now().toIso8601String(),
       };

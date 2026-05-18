@@ -45,7 +45,7 @@ class _StudentHomeViewState extends State<StudentHomeView> {
           ),
         ],
       ),
-      body: appVM.isLoading
+      body: appVM.isLoading && appVM.applications.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _loadData,
@@ -53,64 +53,7 @@ class _StudentHomeViewState extends State<StudentHomeView> {
                 padding: const EdgeInsets.all(16),
                 children: [
                   // Welcome Card
-                  Card(
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 25,
-                                backgroundColor: Colors.blue,
-                                child: Text(
-                                  user?.fullName.isNotEmpty == true
-                                      ? user!.fullName[0].toUpperCase()
-                                      : 'S',
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Welcome, ${user?.fullName ?? 'Student'}!',
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    Text(
-                                      'Student Number: ${user?.studentNumber ?? 'N/A'}',
-                                      style: const TextStyle(
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                    Text(
-                                      'Year of Study: ${_getYearString(user?.yearOfStudy ?? 1)}',
-                                      style: const TextStyle(
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  _buildWelcomeCard(user),
                   const SizedBox(height: 24),
 
                   // Applications Section Header
@@ -145,6 +88,53 @@ class _StudentHomeViewState extends State<StudentHomeView> {
               label: const Text('New Application'),
             )
           : null,
+    );
+  }
+
+  Widget _buildWelcomeCard(user) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 25,
+              backgroundColor: Colors.blue,
+              child: Text(
+                user?.fullName.isNotEmpty == true
+                    ? user!.fullName[0].toUpperCase()
+                    : 'S',
+                style: const TextStyle(fontSize: 24, color: Colors.white),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Welcome, ${user?.fullName ?? 'Student'}!',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    'Student Number: ${user?.studentNumber ?? 'N/A'}',
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                  Text(
+                    'Year of Study: ${_getYearString(user?.yearOfStudy ?? 1)}',
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -183,6 +173,9 @@ class _StudentHomeViewState extends State<StudentHomeView> {
     );
   }
 
+  // ============================================================
+  // UPDATED: Application Card with Multiple Modules Display
+  // ============================================================
   Widget _buildApplicationCard(application) {
     Color statusColor;
     IconData statusIcon;
@@ -202,7 +195,7 @@ class _StudentHomeViewState extends State<StudentHomeView> {
       default:
         statusColor = Colors.orange;
         statusIcon = Icons.pending;
-        statusText = 'Pending Review';
+        statusText = 'Pending';
     }
 
     return Card(
@@ -233,7 +226,7 @@ class _StudentHomeViewState extends State<StudentHomeView> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          application.module1Name,
+                          '${application.moduleCount} Module(s) Selected',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
@@ -305,24 +298,54 @@ class _StudentHomeViewState extends State<StudentHomeView> {
                     ),
                 ],
               ),
-              if (application.hasSecondModule)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Container(
+              const SizedBox(height: 12),
+
+              // Display selected modules as chips
+              const Text(
+                'Selected Modules:',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: application.modules.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final module = entry.value;
+                  return Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
+                      horizontal: 10,
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.blue.shade200),
                     ),
-                    child: Text(
-                      '+ ${application.module2Name}',
-                      style: const TextStyle(fontSize: 12),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '${index + 1}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue.shade700,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          module['name'] ?? '',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.blue.shade800,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ),
+                  );
+                }).toList(),
+              ),
             ],
           ),
         ),
