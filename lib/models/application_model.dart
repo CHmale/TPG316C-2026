@@ -2,7 +2,7 @@
 // FILE: application_model.dart
 // MEMBERS:
 // - Member 1 (Kamohelo Mohlohlo 223010767)
-// - Member 2 (    )
+// - Member 2 ( Lesego Waeza 222041368   )
 // - Member 3 (    )
 // - Member 4 (     )
 // - Member 5 (     )
