@@ -1,4 +1,3 @@
-// lib/views/widgets/module_selector.dart
 import 'package:flutter/material.dart';
 
 class ModuleSelector extends StatefulWidget {
@@ -17,52 +16,37 @@ class ModuleSelector extends StatefulWidget {
 
 class _ModuleSelectorState extends State<ModuleSelector> {
   final List<String> _levels = ['first-year', 'second-year', 'third-year'];
-
-  final Map<String, List<String>> _modulesByLevel = {
+  
+  final Map<String, List<Map<String, String>>> _modulesByLevel = {
     'first-year': [
-      'TPG316C - Programming Fundamentals',
-      'SOD316C - Software Development',
-      'CMN316C - Communication Skills',
-      'ITS316C - Information Systems',
+      {'code': 'TPG316C', 'name': 'Programming Fundamentals'},
+      {'code': 'SOD316C', 'name': 'Software Development'},
+      {'code': 'CMN316C', 'name': 'Communication Skills'},
+      {'code': 'ITS316C', 'name': 'Information Systems'},
     ],
     'second-year': [
-      'PRG216C - Advanced Programming',
-      'DBS216C - Database Systems',
-      'WEB216C - Web Development',
-      'SYS216C - Systems Analysis',
+      {'code': 'PRG216C', 'name': 'Advanced Programming'},
+      {'code': 'DBS216C', 'name': 'Database Systems'},
+      {'code': 'WEB216C', 'name': 'Web Development'},
+      {'code': 'SYS216C', 'name': 'Systems Analysis'},
     ],
     'third-year': [
-      'PRJ316C - Project Management',
-      'ADV316C - Advanced Databases',
-      'Mob316C - Mobile Development',
-      'NWK316C - Networking',
+      {'code': 'PRJ316C', 'name': 'Project Management'},
+      {'code': 'ADV316C', 'name': 'Advanced Databases'},
+      {'code': 'Mob316C', 'name': 'Mobile Development'},
+      {'code': 'NWK316C', 'name': 'Networking'},
     ],
-  };
-
-  final Map<String, String> _moduleCodes = {
-    'TPG116C - Programming Fundamentals': 'TPG116C',
-    'SOD116C - Software Development': 'SOD116C',
-    'CMN116C - Communication Skills': 'CMN116C',
-    'ITS116C - Information Systems': 'ITS116C',
-    'PRG216C - Advanced Programming': 'PRG116C',
-    'DBS216C - Database Systems': 'DBS216C',
-    'WEB216C - Web Development': 'WEB216C',
-    'SYS216C - Systems Analysis': 'SYS216C',
-    'PRJ316C - Project Management': 'PRJ316C',
-    'ADV316C - Advanced Databases': 'ADV316C',
-    'Mob316C - Mobile Development': 'Mob316C',
-    'NWK316C - Networking': 'NWK316C',
   };
 
   String? _selectedLevel;
-  String? _selectedModule;
+  Map<String, String>? _selectedModule;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Header with count
+        // Header
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -71,58 +55,31 @@ class _ModuleSelectorState extends State<ModuleSelector> {
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             if (widget.selectedModules.isNotEmpty)
-              TextButton.icon(
-                onPressed: () {
-                  widget.onModulesChanged([]);
-                },
-                icon: const Icon(Icons.clear_all, size: 16),
-                label: const Text('Clear All'),
-                style: TextButton.styleFrom(foregroundColor: Colors.red),
+              TextButton(
+                onPressed: () => widget.onModulesChanged([]),
+                child: const Text('Clear All', style: TextStyle(color: Colors.red)),
               ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
 
-        // Display selected modules as chips
+        // Selected modules chips
         if (widget.selectedModules.isNotEmpty)
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: List.generate(widget.selectedModules.length, (index) {
-              final module = widget.selectedModules[index];
-              return Chip(
-                label: Text(module['name'] ?? ''),
-                avatar: CircleAvatar(
-                  radius: 12,
-                  backgroundColor: Colors.blue,
-                  child: Text(
-                    '${index + 1}',
-                    style: const TextStyle(fontSize: 12, color: Colors.white),
-                  ),
-                ),
-                deleteIcon: const Icon(Icons.close, size: 16),
-                onDeleted: () {
-                  final newList = List<Map<String, String>>.from(
-                    widget.selectedModules,
-                  );
-                  newList.removeAt(index);
-                  widget.onModulesChanged(newList);
-                },
-              );
-            }),
+            children: _buildModuleChips(), // This returns List<Widget>
           ),
-
+        
         const SizedBox(height: 16),
-
+        
         // Add module section
-        const Text(
-          'Add Module',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-        ),
+        const Divider(),
         const SizedBox(height: 8),
-
+        const Text('Add More Modules', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 12),
+        
         Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: DropdownButtonFormField<String>(
@@ -130,11 +87,7 @@ class _ModuleSelectorState extends State<ModuleSelector> {
                 decoration: const InputDecoration(
                   labelText: 'Academic Level',
                   border: OutlineInputBorder(),
-                  isDense: true,
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 12,
-                  ),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
                 items: _levels.map((level) {
                   return DropdownMenuItem(
@@ -150,24 +103,20 @@ class _ModuleSelectorState extends State<ModuleSelector> {
                 },
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
             Expanded(
-              child: DropdownButtonFormField<String>(
+              child: DropdownButtonFormField<Map<String, String>>(
                 value: _selectedModule,
                 decoration: const InputDecoration(
                   labelText: 'Module',
                   border: OutlineInputBorder(),
-                  isDense: true,
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 12,
-                  ),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
                 items: _selectedLevel != null
                     ? (_modulesByLevel[_selectedLevel] ?? []).map((module) {
                         return DropdownMenuItem(
                           value: module,
-                          child: Text(module),
+                          child: Text('${module['code']} - ${module['name']}'),
                         );
                       }).toList()
                     : [],
@@ -178,63 +127,138 @@ class _ModuleSelectorState extends State<ModuleSelector> {
                 },
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
             ElevatedButton(
               onPressed: _selectedLevel != null && _selectedModule != null
                   ? () {
-                      final moduleCode =
-                          _moduleCodes[_selectedModule!] ?? _selectedModule!;
+                      final isDuplicate = widget.selectedModules.any(
+                        (m) => m['code'] == _selectedModule!['code']
+                      );
+                      
+                      if (isDuplicate) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('This module is already selected'),
+                            backgroundColor: Colors.orange,
+                          ),
+                        );
+                        return;
+                      }
+                      
                       final newModule = {
                         'level': _selectedLevel!,
-                        'name': moduleCode,
-                        'full_name': _selectedModule!,
+                        'code': _selectedModule!['code']!,
+                        'name': _selectedModule!['name']!,
                       };
-
-                      final newList = List<Map<String, String>>.from(
-                        widget.selectedModules,
-                      );
+                      
+                      final newList = List<Map<String, String>>.from(widget.selectedModules);
                       newList.add(newModule);
                       widget.onModulesChanged(newList);
-
+                      
                       setState(() {
                         _selectedLevel = null;
                         _selectedModule = null;
                       });
                     }
                   : null,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-              ),
               child: const Text('Add'),
             ),
           ],
         ),
-
+        
         const SizedBox(height: 8),
-
-        // Helper text
-        Text(
-          'You can add up to 5 modules. Minimum 1 module required.',
-          style: TextStyle(
-            fontSize: 11,
-            color: widget.selectedModules.length >= 5
-                ? Colors.red
-                : Colors.grey,
+        
+        // Validation message
+        if (widget.selectedModules.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(8),
+            color: Colors.orange.shade50,
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, size: 16, color: Colors.orange.shade700),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Minimum 1 module required. You can select up to 5 modules.',
+                    style: TextStyle(fontSize: 12, color: Colors.orange.shade700),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-
+        
         if (widget.selectedModules.length >= 5)
-          const Padding(
-            padding: EdgeInsets.only(top: 4),
-            child: Text(
-              'Maximum 5 modules reached',
-              style: TextStyle(fontSize: 11, color: Colors.red),
+          Container(
+            padding: const EdgeInsets.all(8),
+            color: Colors.red.shade50,
+            child: Row(
+              children: [
+                Icon(Icons.warning, size: 16, color: Colors.red.shade700),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Maximum 5 modules reached. Remove a module to add another.',
+                    style: TextStyle(fontSize: 12, color: Colors.red.shade700),
+                  ),
+                ),
+              ],
             ),
           ),
       ],
     );
+  }
+
+  // THIS METHOD RETURNS List<Widget> - FIXED
+  List<Widget> _buildModuleChips() {
+    final List<Widget> chips = [];
+    
+    for (int i = 0; i < widget.selectedModules.length; i++) {
+      final module = widget.selectedModules[i];
+      chips.add(
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade50,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.blue.shade200),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  color: Colors.blue,
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: Center(
+                  child: Text(
+                    '${i + 1}',
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                module['name'] ?? '',
+                style: TextStyle(fontSize: 13, color: Colors.blue.shade800),
+              ),
+              const SizedBox(width: 4),
+              GestureDetector(
+                onTap: () {
+                  final newList = List<Map<String, String>>.from(widget.selectedModules);
+                  newList.removeAt(i);
+                  widget.onModulesChanged(newList);
+                },
+                child: const Icon(Icons.close, size: 16, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    return chips;
   }
 }
