@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-// 🎨 Custom color scheme for loading states
+//  Custom color scheme for loading states
 class LoadingColors {
   static const Color primary = Color(0xFF6C63FF);     // Modern Purple
   static const Color secondary = Color(0xFFFF6584);   // Coral Pink
@@ -217,7 +217,7 @@ class _AnimatedDotState extends State<_AnimatedDot>
   }
 }
 
-// 🎯 Alternative: Skeleton Loading Widget for content placeholders
+//  Alternative: Skeleton Loading Widget for content placeholders
 class SkeletonLoadingWidget extends StatelessWidget {
   final bool fullScreen;
   
