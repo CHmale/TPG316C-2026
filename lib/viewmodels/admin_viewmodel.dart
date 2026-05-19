@@ -1,162 +1,154 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/application_model.dart';
+import '../models/user_model.dart';
 
-class AdminState {
-  final List<ApplicationModel> applications;
-  final bool isLoading;
-  final String? error;
-
-  const AdminState({
-    this.applications = const [],
-    this.isLoading = false,
-    this.error,
-  });
-
-  AdminState copyWith({
-    List<ApplicationModel>? applications,
-    bool? isLoading,
-    String? error,
-  }) {
-    return AdminState(
-      applications: applications ?? this.applications,
-      isLoading: isLoading ?? this.isLoading,
-      error: error,
-    );
-  }
-}
-
-class AdminViewModel extends ChangeNotifier {
+class AuthViewModel extends ChangeNotifier {
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  AdminState _state = const AdminState();
-  AdminState get state => _state;
+  UserModel? _user;
+  bool _loading = false;
+  String? _error;
 
-  List<ApplicationModel> get applications => _state.applications;
-  bool get isLoading => _state.isLoading;
-  String? get error => _state.error;
+  UserModel? get user => _user;
+  bool get isLoading => _loading;
+  String? get error => _error;
 
-  // =========================
-  // STATS
-  // =========================
-  int get total => applications.length;
-  int get pending =>
-      applications.where((a) => a.isPending).length;
-  int get approved =>
-      applications.where((a) => a.isApproved).length;
-  int get rejected =>
-      applications.where((a) => a.isRejected).length;
+  bool get isLoggedIn => _supabase.auth.currentUser != null;
+
+  bool get isAdmin =>
+      (_user?.role ?? '').toLowerCase() == 'admin';
 
   // =========================
-  // FETCH
+  // SIGN IN
   // =========================
-  Future<void> fetchApplications() async {
-    _updateState(isLoading: true, error: null);
+  Future<bool> signIn(String email, String password) async {
+    return _runAuthTask(() async {
+      final res = await _supabase.auth.signInWithPassword(
+        email: email.trim(),
+        password: password,
+      );
 
+      final userId = res.user?.id;
+      if (userId == null) return false;
+
+      await _fetchUser(userId);
+      return true;
+    });
+  }
+
+  // =========================
+  // SIGN UP
+  // =========================
+  Future<bool> signUp({
+    required String email,
+    required String password,
+    required String fullName,
+    required String studentNumber,
+    required int yearOfStudy,
+  }) async {
+    return _runAuthTask(() async {
+      final res = await _supabase.auth.signUp(
+        email: email.trim(),
+        password: password,
+      );
+
+      final userId = res.user?.id;
+
+      // IMPORTANT: handles email verification mode
+      if (userId == null) {
+        _error = "Check your email to confirm your account.";
+        notifyListeners();
+        return false;
+      }
+
+      final profile = {
+        'id': userId,
+        'email': email.trim(),
+        'role': 'student',
+        'full_name': fullName,
+        'student_number': studentNumber,
+        'year_of_study': yearOfStudy,
+        'created_at': DateTime.now().toIso8601String(),
+      };
+
+      await _supabase.from('users').upsert(profile);
+
+      await _fetchUser(userId);
+      return true;
+    });
+  }
+
+  // =========================
+  // SIGN OUT
+  // =========================
+  Future<void> signOut() async {
+    await _supabase.auth.signOut();
+    _user = null;
+    notifyListeners();
+  }
+
+  // =========================
+  // SESSION CHECK
+  // =========================
+  Future<void> checkSession() async {
+    final user = _supabase.auth.currentUser;
+
+    if (user != null) {
+      await _fetchUser(user.id);
+    }
+  }
+
+  // =========================
+  // FETCH USER PROFILE
+  // =========================
+  Future<void> _fetchUser(String userId) async {
     try {
       final data = await _supabase
-          .from('applications')
+          .from('users')
           .select()
-          .order('submitted_at', ascending: false);
+          .eq('id', userId)
+          .maybeSingle();
 
-      final list = (data as List)
-          .map((e) => ApplicationModel.fromJson(e))
-          .toList();
-
-      _updateState(applications: list);
+      if (data == null) {
+        _error = "User profile not found.";
+        _user = null;
+      } else {
+        _user = UserModel.fromJson(data);
+      }
     } catch (e) {
-      _updateState(error: e.toString());
-    } finally {
-      _updateState(isLoading: false);
+      _error = e.toString();
     }
+
+    notifyListeners();
   }
 
   // =========================
-  // APPROVE / REJECT SHARED
+  // SHARED AUTH WRAPPER
   // =========================
-  Future<bool> _updateStatus({
-    required String id,
-    required String status,
-    required String comment,
-  }) async {
-    _updateState(isLoading: true, error: null);
+  Future<bool> _runAuthTask(Future<bool> Function() task) async {
+    _setLoading(true);
+    _error = null;
 
     try {
-      await _supabase.from('applications').update({
-        'status': status,
-        'admin_comments': comment,
-        'updated_at': DateTime.now().toIso8601String(),
-      }).eq('id', id);
-
-      await fetchApplications();
-      return true;
+      return await task();
     } catch (e) {
-      _updateState(error: e.toString());
+      _error = e.toString();
       return false;
     } finally {
-      _updateState(isLoading: false);
-    }
-  }
-
-  Future<bool> approve(String id, {String? comment}) {
-    return _updateStatus(
-      id: id,
-      status: 'approved',
-      comment: comment ?? 'Approved',
-    );
-  }
-
-  Future<bool> reject(String id, {required String reason}) {
-    return _updateStatus(
-      id: id,
-      status: 'rejected',
-      comment: reason,
-    );
-  }
-
-  // =========================
-  // DELETE
-  // =========================
-  Future<bool> delete(String id) async {
-    _updateState(isLoading: true, error: null);
-
-    try {
-      await _supabase
-          .from('applications')
-          .delete()
-          .eq('id', id);
-
-      final updated = applications
-          .where((a) => a.id != id)
-          .toList();
-
-      _updateState(applications: updated);
-      return true;
-    } catch (e) {
-      _updateState(error: e.toString());
-      return false;
-    } finally {
-      _updateState(isLoading: false);
+      _setLoading(false);
     }
   }
 
   // =========================
-  // STATE UPDATER
+  // STATE HELPER
   // =========================
-  void _updateState({
-    List<ApplicationModel>? applications,
-    bool? isLoading,
-    String? error,
-  }) {
-    _state = _state.copyWith(
-      applications: applications,
-      isLoading: isLoading,
-      error: error,
-    );
+  void _setLoading(bool value) {
+    _loading = value;
     notifyListeners();
   }
 
   void clearError() {
-    _updateState(error: null);
+    _error = null;
+    notifyListeners();
   }
 }
