@@ -1,17 +1,30 @@
-
-
-// lib/models/user_model.dart
+// ============================================================
+// FILE: auth_viewmodel.dart
+// GROUP: W3M
+// MEMBERS:
+// - Malejane HC 222025549
+// - Mokhele KD 221037680
+// - Manala E 222057458
+// - Mohlohlo K 223010767
+// - Modise LS 222021816
+// - Nomankonya 216006365
+// - Waeza LP 222041368
+// DATE: May 2026
+// ============================================================
+// FILE: user_model.dart
+// DESCRIPTION: User data model for authentication
+// ============================================================
 
 class UserModel {
   final String id;
   final String email;
-  final String role;
+  final String role; // 'student' or 'admin'
   final String fullName;
   final String studentNumber;
   final int yearOfStudy;
   final DateTime createdAt;
 
-  const UserModel({
+  UserModel({
     required this.id,
     required this.email,
     required this.role,
@@ -21,20 +34,20 @@ class UserModel {
     required this.createdAt,
   });
 
-  /// Factory constructor with safer parsing
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: (json['id'] ?? '').toString(),
-      email: (json['email'] ?? '').toString(),
-      role: (json['role'] ?? 'student').toString(),
-      fullName: (json['full_name'] ?? '').toString(),
-      studentNumber: (json['student_number'] ?? '').toString(),
-      yearOfStudy: _parseInt(json['year_of_study'], defaultValue: 1),
-      createdAt: _parseDate(json['created_at']),
+      id: json['id'].toString(),
+      email: json['email'] ?? '',
+      role: json['role'] ?? 'student',
+      fullName: json['full_name'] ?? '',
+      studentNumber: json['student_number'] ?? '',
+      yearOfStudy: json['year_of_study'] ?? 1,
+      createdAt: DateTime.parse(
+        json['created_at'] ?? DateTime.now().toIso8601String(),
+      ),
     );
   }
 
-  /// Convert object → JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -47,40 +60,6 @@ class UserModel {
     };
   }
 
-  /// Helper: safe int parsing
-  static int _parseInt(dynamic value, {int defaultValue = 0}) {
-    if (value == null) return defaultValue;
-    return int.tryParse(value.toString()) ?? defaultValue;
-  }
-
-  /// Helper: safe date parsing
-  static DateTime _parseDate(dynamic value) {
-    if (value == null) return DateTime.now();
-    return DateTime.tryParse(value.toString()) ?? DateTime.now();
-  }
-
-  /// Role helpers
-  bool get isAdmin => role.toLowerCase() == 'admin';
-  bool get isStudent => role.toLowerCase() == 'student';
-
-  /// Optional: copyWith (useful for updates)
-  UserModel copyWith({
-    String? id,
-    String? email,
-    String? role,
-    String? fullName,
-    String? studentNumber,
-    int? yearOfStudy,
-    DateTime? createdAt,
-  }) {
-    return UserModel(
-      id: id ?? this.id,
-      email: email ?? this.email,
-      role: role ?? this.role,
-      fullName: fullName ?? this.fullName,
-      studentNumber: studentNumber ?? this.studentNumber,
-      yearOfStudy: yearOfStudy ?? this.yearOfStudy,
-      createdAt: createdAt ?? this.createdAt,
-    );
-  }
+  bool get isAdmin => role == 'admin';
+  bool get isStudent => role == 'student';
 }
