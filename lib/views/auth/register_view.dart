@@ -1,8 +1,33 @@
-// views/auth/register_view.dart
+// ============================================================
+// FILE: register_view.dart
+// GROUP: W3M
+// MEMBERS:
+// - Malejane HC 222025549
+// - Mokhele KD 221037680
+// - Manala E 222057458
+// - Mohlohlo K 223010767
+// - Modise LS 222021816
+// - Nomankonya 216006365
+// - Waeza LP 222041368
+
+// DATE: May 2026
+// ============================================================
+// DESCRIPTION:
+// Registration Screen - creates new student accounts.
+// Implements comprehensive form validation (Unit 4).
+// ============================================================
+// LEARNING OBJECTIVES COVERED:
+// - Unit 1: Form, TextFormField, DropdownButtonFormField
+// - Unit 2: Consumer for state management
+// - Unit 4: Form validation with GlobalKey<FormState>
+// - Unit 4: TextFormField validators
+// - Unit 5: Supabase Authentication signUp
+// ============================================================
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_viewmodel.dart';
-import '../../routes/route_manager.dart';
+import '../../main.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -18,8 +43,11 @@ class _RegisterViewState extends State<RegisterView> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  int _selectedYear = 1;
-  bool _isRegistering = false;
+
+  int _yearOfStudy = 1;
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void dispose() {
@@ -31,196 +59,208 @@ class _RegisterViewState extends State<RegisterView> {
     super.dispose();
   }
 
-  Future<void> _handleRegister(AuthViewModel authVM) async {
+  Future<void> _register(AuthViewModel authVM) async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isRegistering = true;
-    });
-
-    try {
-      final success = await authVM.signUp(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-        fullName: _fullNameController.text.trim(),
-        studentNumber: _studentNumberController.text.trim(),
-        yearOfStudy: _selectedYear,
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Passwords do not match'),
+          backgroundColor: CUTColors.error,
+        ),
       );
+      return;
+    }
 
-      if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Registration successful! Please login.'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context);
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isRegistering = false;
-        });
-      }
+    setState(() => _isLoading = true);
+
+    final success = await authVM.signUp(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+      fullName: _fullNameController.text.trim(),
+      studentNumber: _studentNumberController.text.trim(),
+      yearOfStudy: _yearOfStudy,
+    );
+
+    setState(() => _isLoading = false);
+
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Registration successful! Please login.'),
+          backgroundColor: CUTColors.success,
+        ),
+      );
+      Navigator.pop(context);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final authVM = context.watch<AuthViewModel>();
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Account')),
-      body: Consumer<AuthViewModel>(
-        builder: (context, authVM, child) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Student Registration',
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Create your account to apply for Student Assistant positions',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  const SizedBox(height: 32),
-                  TextFormField(
-                    controller: _fullNameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Full Name',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.person),
-                    ),
-                    validator: (v) => v == null || v.isEmpty
-                        ? 'Please enter your full name'
-                        : null,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _studentNumberController,
-                    decoration: const InputDecoration(
-                      labelText: 'Student Number',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.badge),
-                    ),
-                    validator: (v) => v == null || v.isEmpty
-                        ? 'Please enter your student number'
-                        : null,
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<int>(
-                    value: _selectedYear,
-                    decoration: const InputDecoration(
-                      labelText: 'Year of Study',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.school),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 1, child: Text('1st Year')),
-                      DropdownMenuItem(value: 2, child: Text('2nd Year')),
-                      DropdownMenuItem(value: 3, child: Text('3rd Year')),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedYear = value ?? 1;
-                      });
-                    },
-                    validator: (v) =>
-                        v == null ? 'Please select year of study' : null,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'Email Address',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.email),
-                    ),
-                    validator: (v) {
-                      if (v == null || v.isEmpty)
-                        return 'Please enter your email';
-                      if (!v.contains('@')) return 'Enter a valid email';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Password',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.lock),
-                    ),
-                    validator: (v) {
-                      if (v == null || v.isEmpty)
-                        return 'Please enter a password';
-                      if (v.length < 6)
-                        return 'Password must be at least 6 characters';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _confirmPasswordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Confirm Password',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.lock_outline),
-                    ),
-                    validator: (v) {
-                      if (v != _passwordController.text)
-                        return 'Passwords do not match';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  if (authVM.errorMessage != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Text(
-                        authVM.errorMessage!,
-                        style: const TextStyle(color: Colors.red),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ElevatedButton(
-                    onPressed: (_isRegistering || authVM.isLoading)
-                        ? null
-                        : () => _handleRegister(authVM),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: (_isRegistering || authVM.isLoading)
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text(
-                            'Register',
-                            style: TextStyle(fontSize: 16),
-                          ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Already have an account? Login'),
-                  ),
-                ],
+      appBar: AppBar(
+        title: const Text('Create Account'),
+        backgroundColor: CUTColors.primaryBlue,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 20),
+              const Text(
+                'Student Registration',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: CUTColors.primaryBlue,
+                ),
+                textAlign: TextAlign.center,
               ),
-            ),
-          );
-        },
+              const SizedBox(height: 8),
+              const Text(
+                'Create your account to apply for Student Assistant positions',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: CUTColors.mediumGray),
+              ),
+              const SizedBox(height: 32),
+
+              TextFormField(
+                controller: _fullNameController,
+                decoration: const InputDecoration(
+                  labelText: 'Full Name',
+                  prefixIcon: Icon(Icons.person),
+                ),
+                validator: (v) => v?.isEmpty == true ? 'Enter full name' : null,
+              ),
+              const SizedBox(height: 16),
+
+              TextFormField(
+                controller: _studentNumberController,
+                decoration: const InputDecoration(
+                  labelText: 'Student Number',
+                  prefixIcon: Icon(Icons.badge),
+                ),
+                keyboardType: TextInputType.number,
+                validator:
+                    (v) => v?.isEmpty == true ? 'Enter student number' : null,
+              ),
+              const SizedBox(height: 16),
+
+              DropdownButtonFormField<int>(
+                value: _yearOfStudy,
+                decoration: const InputDecoration(
+                  labelText: 'Year of Study',
+                  prefixIcon: Icon(Icons.school),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 1, child: Text('1st Year')),
+                  DropdownMenuItem(value: 2, child: Text('2nd Year')),
+                  DropdownMenuItem(value: 3, child: Text('3rd Year')),
+                ],
+                onChanged: (v) => setState(() => _yearOfStudy = v ?? 1),
+              ),
+              const SizedBox(height: 16),
+
+              TextFormField(
+                controller: _emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  prefixIcon: Icon(Icons.email),
+                ),
+                keyboardType: TextInputType.emailAddress,
+                validator: (v) => v?.isEmpty == true ? 'Enter email' : null,
+              ),
+              const SizedBox(height: 16),
+
+              TextFormField(
+                controller: _passwordController,
+                obscureText: _obscurePassword,
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  prefixIcon: const Icon(Icons.lock),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                    ),
+                    onPressed:
+                        () => setState(
+                          () => _obscurePassword = !_obscurePassword,
+                        ),
+                  ),
+                ),
+                validator: (v) => v?.isEmpty == true ? 'Enter password' : null,
+              ),
+              const SizedBox(height: 16),
+
+              TextFormField(
+                controller: _confirmPasswordController,
+                obscureText: _obscureConfirmPassword,
+                decoration: InputDecoration(
+                  labelText: 'Confirm Password',
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureConfirmPassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                    ),
+                    onPressed:
+                        () => setState(
+                          () =>
+                              _obscureConfirmPassword =
+                                  !_obscureConfirmPassword,
+                        ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              if (authVM.errorMessage != null)
+                Text(
+                  authVM.errorMessage!,
+                  style: const TextStyle(color: CUTColors.error),
+                ),
+
+              const SizedBox(height: 16),
+
+              ElevatedButton(
+                onPressed: _isLoading ? null : () => _register(authVM),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: CUTColors.primaryBlue,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child:
+                    _isLoading
+                        ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                        : const Text(
+                          'Register',
+                          style: TextStyle(fontSize: 16),
+                        ),
+              ),
+
+              const SizedBox(height: 16),
+
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Already have an account? Login'),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
