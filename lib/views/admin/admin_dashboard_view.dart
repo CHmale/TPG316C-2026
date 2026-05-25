@@ -1,9 +1,22 @@
-// lib/views/admin/admin_dashboard_view.dart
+// MEMBERS:
+// - Malejane HC 222025549
+// - Mokhele KD 221037680
+// - Manala E 222057458
+// - Mohlohlo K 223010767
+// - Modise LS 222021816
+// - Nomankonya 216006365
+// - Waeza LP 222041368
+// ============================================================
+// FILE: admin_dashboard_view.dart
+// DESCRIPTION: Admin Dashboard - Review Applications (Assignment 2.1)
+// ============================================================
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/admin_viewmodel.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../routes/route_manager.dart';
+import '../../main.dart';
 
 class AdminDashboardView extends StatefulWidget {
   const AdminDashboardView({super.key});
@@ -13,7 +26,7 @@ class AdminDashboardView extends StatefulWidget {
 }
 
 class _AdminDashboardViewState extends State<AdminDashboardView> {
-  String _filterStatus = 'all';
+  String _filter = 'all';
 
   @override
   void initState() {
@@ -25,6 +38,11 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
     await context.read<AdminViewModel>().fetchAllApplications();
   }
 
+  List _getFiltered(AdminViewModel vm) {
+    if (_filter == 'all') return vm.allApplications;
+    return vm.allApplications.where((app) => app.status == _filter).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final authVM = context.watch<AuthViewModel>();
@@ -33,88 +51,98 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Admin Dashboard'),
+        backgroundColor: CUTColors.primaryBlue,
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
               await authVM.signOut();
-              if (mounted) {
+              if (mounted)
                 Navigator.pushReplacementNamed(context, RouteManager.login);
-              }
             },
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _loadData,
-        child: adminVM.isLoading && adminVM.allApplications.isEmpty
-            ? const Center(child: CircularProgressIndicator())
-            : Column(
+      body:
+          adminVM.isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : Column(
                 children: [
                   // Statistics Cards
-                  _buildStatsRow(adminVM),
-                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        _buildStatCard(
+                          'Total',
+                          adminVM.totalApplications,
+                          CUTColors.primaryBlue,
+                        ),
+                        _buildStatCard(
+                          'Pending',
+                          adminVM.pendingCount,
+                          CUTColors.warning,
+                        ),
+                        _buildStatCard(
+                          'Approved',
+                          adminVM.approvedCount,
+                          CUTColors.success,
+                        ),
+                        _buildStatCard(
+                          'Rejected',
+                          adminVM.rejectedCount,
+                          CUTColors.error,
+                        ),
+                      ],
+                    ),
+                  ),
 
                   // Filter Chips
-                  _buildFilterChips(),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildFilterChip('All', 'all'),
+                        const SizedBox(width: 8),
+                        _buildFilterChip('Pending', 'pending'),
+                        const SizedBox(width: 8),
+                        _buildFilterChip('Approved', 'approved'),
+                        const SizedBox(width: 8),
+                        _buildFilterChip('Rejected', 'rejected'),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 16),
 
                   // Applications List
                   Expanded(
-                    child: _getFilteredApplications(adminVM).isEmpty
-                        ? _buildEmptyState()
-                        : ListView.builder(
-                            padding: const EdgeInsets.all(8),
-                            itemCount: _getFilteredApplications(adminVM).length,
-                            itemBuilder: (context, index) {
-                              final app = _getFilteredApplications(
-                                adminVM,
-                              )[index];
-                              return _buildApplicationCard(adminVM, app);
-                            },
-                          ),
+                    child:
+                        _getFiltered(adminVM).isEmpty
+                            ? const Center(child: Text('No applications'))
+                            : ListView.builder(
+                              padding: const EdgeInsets.all(8),
+                              itemCount: _getFiltered(adminVM).length,
+                              itemBuilder: (context, index) {
+                                final app = _getFiltered(adminVM)[index];
+                                return _buildApplicationCard(adminVM, app);
+                              },
+                            ),
                   ),
                 ],
               ),
-      ),
-    );
-  }
-
-  List _getFilteredApplications(AdminViewModel adminVM) {
-    if (_filterStatus == 'all') {
-      return adminVM.allApplications;
-    }
-    return adminVM.allApplications
-        .where((app) => app.status == _filterStatus)
-        .toList();
-  }
-
-  Widget _buildStatsRow(AdminViewModel adminVM) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          _buildStatCard('Total', adminVM.totalApplications, Colors.blue),
-          const SizedBox(width: 12),
-          _buildStatCard('Pending', adminVM.pendingCount, Colors.orange),
-          const SizedBox(width: 12),
-          _buildStatCard('Approved', adminVM.approvedCount, Colors.green),
-          const SizedBox(width: 12),
-          _buildStatCard('Rejected', adminVM.rejectedCount, Colors.red),
-        ],
-      ),
     );
   }
 
   Widget _buildStatCard(String label, int count, Color color) {
     return Expanded(
       child: Container(
+        margin: const EdgeInsets.all(4),
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           color: color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
         ),
         child: Column(
           children: [
@@ -133,128 +161,57 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
     );
   }
 
-  Widget _buildFilterChips() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          _buildFilterChip('All', 'all'),
-          const SizedBox(width: 8),
-          _buildFilterChip('Pending', 'pending'),
-          const SizedBox(width: 8),
-          _buildFilterChip('Approved', 'approved'),
-          const SizedBox(width: 8),
-          _buildFilterChip('Rejected', 'rejected'),
-        ],
-      ),
-    );
-  }
-
   Widget _buildFilterChip(String label, String value) {
-    final isSelected = _filterStatus == value;
     return FilterChip(
       label: Text(label),
-      selected: isSelected,
-      onSelected: (_) {
-        setState(() {
-          _filterStatus = value;
-        });
-      },
-      backgroundColor: Colors.grey[200],
-      selectedColor: Colors.blue[100],
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.inbox, size: 64, color: Colors.grey),
-          SizedBox(height: 16),
-          Text(
-            'No applications found',
-            style: TextStyle(fontSize: 18, color: Colors.grey),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Students need to submit applications first',
-            style: TextStyle(fontSize: 14, color: Colors.grey),
-          ),
-        ],
+      selected: _filter == value,
+      onSelected: (_) => setState(() => _filter = value),
+      backgroundColor: CUTColors.lightGray,
+      selectedColor: CUTColors.primaryBlue.withOpacity(0.2),
+      labelStyle: TextStyle(
+        color: _filter == value ? CUTColors.primaryBlue : CUTColors.darkGray,
       ),
     );
   }
 
-  // ============================================================
-  // FIXED: Application Card - Shows REAL applicant data
-  // ============================================================
   Widget _buildApplicationCard(AdminViewModel adminVM, application) {
     Color statusColor;
     String statusText;
 
     switch (application.status) {
       case 'approved':
-        statusColor = Colors.green;
+        statusColor = CUTColors.success;
         statusText = 'Approved';
         break;
       case 'rejected':
-        statusColor = Colors.red;
+        statusColor = CUTColors.error;
         statusText = 'Rejected';
         break;
       default:
-        statusColor = Colors.orange;
+        statusColor = CUTColors.warning;
         statusText = 'Pending';
     }
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      elevation: 2,
       child: ExpansionTile(
         leading: CircleAvatar(
           backgroundColor: statusColor.withOpacity(0.2),
           child: Icon(
             application.isApproved
                 ? Icons.check
-                : application.isRejected
-                ? Icons.close
-                : Icons.hourglass_empty,
+                : (application.isRejected
+                    ? Icons.close
+                    : Icons.hourglass_empty),
             color: statusColor,
           ),
         ),
-        // FIXED: Shows applicant's name, NOT admin's name
         title: Text(
           application.fullName,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Student: ${application.studentNumber}',
-              style: const TextStyle(fontSize: 12),
-            ),
-            Text(
-              'Module: ${application.module1Name}',
-              style: const TextStyle(fontSize: 12),
-            ),
-            Container(
-              margin: const EdgeInsets.only(top: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                statusText,
-                style: TextStyle(
-                  color: statusColor,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
+        subtitle: Text(
+          'Student: ${application.studentNumber} | ${application.moduleCount} module(s)',
         ),
         children: [
           Padding(
@@ -262,9 +219,6 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Application Details
-                _buildDetailRow('Full Name', application.fullName),
-                const Divider(),
                 _buildDetailRow('Student Number', application.studentNumber),
                 const Divider(),
                 _buildDetailRow(
@@ -272,17 +226,31 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                   _getYearString(application.yearOfStudy),
                 ),
                 const Divider(),
-                _buildDetailRow(
-                  'Module 1',
-                  '${_getLevelString(application.module1Level)} - ${application.module1Name}',
+                const Text(
+                  'Selected Modules:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
-                if (application.hasSecondModule) ...[
-                  const Divider(),
-                  _buildDetailRow(
-                    'Module 2',
-                    '${_getLevelString(application.module2Level ?? '')} - ${application.module2Name ?? ''}',
-                  ),
-                ],
+                const SizedBox(height: 8),
+                ...application.modules.asMap().entries.map((entry) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: CUTColors.primaryBlue.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(child: Text('${entry.key + 1}')),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(entry.value['name'] ?? '')),
+                      ],
+                    ),
+                  );
+                }).toList(),
                 const Divider(),
                 _buildDetailRow(
                   'Meets Requirements',
@@ -293,90 +261,60 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                   'Submitted',
                   _formatDate(application.submittedAt),
                 ),
-                if (application.updatedAt != null) ...[
+                if (application.hasDocument) ...[
                   const Divider(),
-                  _buildDetailRow(
-                    'Last Updated',
-                    _formatDate(application.updatedAt!),
-                  ),
+                  _buildDetailRow('Document', 'Attached'),
                 ],
-
-                // Admin Comments
-                if (application.adminComments != null &&
-                    application.adminComments!.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Admin Comments:',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[100],
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(application.adminComments!),
-                        ),
-                      ],
-                    ),
-                  ),
-
+                if (application.adminComments != null) ...[
+                  const Divider(),
+                  _buildDetailRow('Admin Comments', application.adminComments!),
+                ],
                 const SizedBox(height: 16),
 
-                // Action Buttons (Only for pending applications)
                 if (application.isPending)
                   Row(
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () => _showApprovalDialog(
-                            adminVM,
-                            application.id,
-                            true,
-                          ),
-                          icon: const Icon(Icons.check, size: 18),
+                          onPressed:
+                              () => _showApprovalDialog(
+                                adminVM,
+                                application.id,
+                                true,
+                              ),
+                          icon: const Icon(Icons.check),
                           label: const Text('Approve'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
+                            backgroundColor: CUTColors.success,
                           ),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () => _showApprovalDialog(
-                            adminVM,
-                            application.id,
-                            false,
-                          ),
-                          icon: const Icon(Icons.close, size: 18),
+                          onPressed:
+                              () => _showApprovalDialog(
+                                adminVM,
+                                application.id,
+                                false,
+                              ),
+                          icon: const Icon(Icons.close),
                           label: const Text('Reject'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
+                            backgroundColor: CUTColors.error,
                           ),
                         ),
                       ),
                     ],
                   ),
-
                 const SizedBox(height: 8),
-
-                // Delete Button (for all applications)
                 OutlinedButton.icon(
                   onPressed: () => _confirmDelete(adminVM, application.id),
-                  icon: const Icon(Icons.delete, size: 18),
+                  icon: const Icon(Icons.delete),
                   label: const Text('Delete Application'),
-                  style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: CUTColors.error,
+                  ),
                 ),
               ],
             ),
@@ -390,175 +328,127 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 130,
+            width: 120,
             child: Text(
               label,
-              style: const TextStyle(
-                fontWeight: FontWeight.w500,
-                color: Colors.grey,
-              ),
+              style: const TextStyle(color: CUTColors.mediumGray),
             ),
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontWeight: FontWeight.w500),
-            ),
-          ),
+          Expanded(child: Text(value)),
         ],
       ),
     );
   }
 
-  void _showApprovalDialog(
+  Future<void> _showApprovalDialog(
     AdminViewModel adminVM,
-    String applicationId,
+    String id,
     bool isApprove,
-  ) {
+  ) async {
     final commentController = TextEditingController();
 
-    showDialog(
+    await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(isApprove ? 'Approve Application' : 'Reject Application'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              isApprove
-                  ? 'Are you sure you want to approve this application?'
-                  : 'Please provide a reason for rejection:',
+      builder:
+          (context) => AlertDialog(
+            title: Text(
+              isApprove ? 'Approve Application' : 'Reject Application',
             ),
-            if (!isApprove) ...[
-              const SizedBox(height: 16),
-              TextField(
-                controller: commentController,
-                decoration: const InputDecoration(
-                  labelText: 'Reason for Rejection',
-                  border: OutlineInputBorder(),
-                  hintText: 'Enter reason here...',
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  isApprove ? 'Confirm approval?' : 'Enter rejection reason:',
                 ),
-                maxLines: 3,
+                if (!isApprove) ...[
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: commentController,
+                    decoration: const InputDecoration(
+                      hintText: 'Reason for rejection',
+                    ),
+                    maxLines: 3,
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  bool success;
+                  if (isApprove) {
+                    success = await adminVM.approveApplication(id);
+                  } else {
+                    if (commentController.text.isEmpty) return;
+                    success = await adminVM.rejectApplication(
+                      id,
+                      reason: commentController.text,
+                    );
+                  }
+                  if (success) {
+                    _loadData();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          isApprove
+                              ? 'Application approved'
+                              : 'Application rejected',
+                        ),
+                        backgroundColor:
+                            isApprove ? CUTColors.success : CUTColors.error,
+                      ),
+                    );
+                  }
+                },
+                child: Text(isApprove ? 'Approve' : 'Reject'),
               ),
             ],
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
           ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              bool success;
-              if (isApprove) {
-                success = await adminVM.approveApplication(applicationId);
-              } else {
-                if (commentController.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Please provide a reason for rejection'),
-                      backgroundColor: Colors.orange,
-                    ),
-                  );
-                  return;
-                }
-                success = await adminVM.rejectApplication(
-                  applicationId,
-                  reason: commentController.text.trim(),
-                );
-              }
-
-              if (success && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      isApprove
-                          ? 'Application approved!'
-                          : 'Application rejected',
-                    ),
-                    backgroundColor: isApprove ? Colors.green : Colors.red,
-                  ),
-                );
-                _loadData(); // Refresh the list
-              }
-            },
-            style: TextButton.styleFrom(
-              foregroundColor: isApprove ? Colors.green : Colors.red,
-            ),
-            child: Text(isApprove ? 'Approve' : 'Reject'),
-          ),
-        ],
-      ),
     );
   }
 
-  void _confirmDelete(AdminViewModel adminVM, String applicationId) {
-    showDialog(
+  Future<void> _confirmDelete(AdminViewModel adminVM, String id) async {
+    final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Application'),
-        content: const Text(
-          'Are you sure you want to delete this application? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete Application'),
+            content: const Text('Are you sure?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text(
+                  'Delete',
+                  style: TextStyle(color: CUTColors.error),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              final success = await adminVM.deleteApplication(applicationId);
-              if (success && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Application deleted successfully'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-                _loadData(); // Refresh the list
-              }
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
     );
-  }
-
-  String _getYearString(int year) {
-    switch (year) {
-      case 1:
-        return '1st Year';
-      case 2:
-        return '2nd Year';
-      case 3:
-        return '3rd Year';
-      default:
-        return '$year Year';
+    if (confirm == true) {
+      await adminVM.deleteApplication(id);
+      _loadData();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Application deleted'),
+          backgroundColor: CUTColors.success,
+        ),
+      );
     }
   }
 
-  String _getLevelString(String level) {
-    switch (level) {
-      case 'first-year':
-        return 'First Year';
-      case 'second-year':
-        return 'Second Year';
-      case 'third-year':
-        return 'Third Year';
-      default:
-        return level;
-    }
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
-  }
+  String _getYearString(int year) =>
+      ['1st Year', '2nd Year', '3rd Year'][year - 1];
+  String _formatDate(DateTime date) => '${date.day}/${date.month}/${date.year}';
 }
