@@ -1,4 +1,30 @@
-// lib/viewmodels/application_viewmodel.dart
+// ============================================================
+// FILE: application_viewmodel.dart
+// MEMBERS:
+// - Malejane HC 222025549
+// - Mokhele KD 221037680
+// - Manala E 222057458
+// - Mohlohlo K 223010767
+// - Modise LS 222021816
+// - Nomankonya 216006365
+// - Waeza LP 222041368
+// DATE: May 2026
+// ============================================================
+// DESCRIPTION:
+// Application ViewModel - manages CRUD operations for
+// Student Assistant applications.
+// ============================================================
+// LEARNING OBJECTIVES COVERED:
+// - Unit 2: ViewModel with ChangeNotifier
+// - Unit 5: CRUD operations (Create, Read, Update, Delete)
+// - Unit 5: Supabase database integration
+// - Unit 5: Row Level Security (RLS) compliance
+// ============================================================
+// ============================================================
+// FILE: application_viewmodel.dart
+// COMPLETE WORKING VERSION - FIXED PGRST204
+// ============================================================
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/application_model.dart';
@@ -14,7 +40,6 @@ class ApplicationViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  // Fetch applications for current user
   Future<void> fetchApplications() async {
     _isLoading = true;
     notifyListeners();
@@ -29,18 +54,18 @@ class ApplicationViewModel extends ChangeNotifier {
           .eq('user_id', userId)
           .order('submitted_at', ascending: false);
 
-      _applications = response
-          .map((json) => ApplicationModel.fromJson(json))
-          .toList();
+      _applications =
+          response.map((json) => ApplicationModel.fromJson(json)).toList();
+      print('Fetched ${_applications.length} applications');
     } catch (e) {
       _errorMessage = e.toString();
+      print('Fetch error: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  // Get application by ID
   ApplicationModel? getApplicationById(String id) {
     try {
       return _applications.firstWhere((app) => app.id == id);
@@ -49,14 +74,16 @@ class ApplicationViewModel extends ChangeNotifier {
     }
   }
 
-  // Add these methods (replace existing addApplication and updateApplication)
-
+  // ============================================================
+  // FIXED: addApplication - Proper JSON format for modules
+  // ============================================================
   Future<bool> addApplication({
     required String fullName,
     required String studentNumber,
     required int yearOfStudy,
     required List<Map<String, String>> modules,
     required bool meetsRequirements,
+    String? documentUrl,
   }) async {
     _isLoading = true;
     _errorMessage = null;
@@ -65,28 +92,43 @@ class ApplicationViewModel extends ChangeNotifier {
     try {
       final userId = _supabase.auth.currentUser!.id;
 
-      // Check if user already has an application
-      final existingCheck = await _supabase
+      // Check existing application
+      final existing = await _supabase
           .from('applications')
-          .select()
+          .select('id')
           .eq('user_id', userId)
           .maybeSingle();
-
-      if (existingCheck != null) {
+      if (existing != null) {
         _errorMessage = 'You have already submitted an application.';
         return false;
       }
 
-      final response = await _supabase.from('applications').insert({
+      //CRITICAL: Convert modules to List<Map<String, dynamic>> with string values
+      final List<Map<String, dynamic>> modulesJson = modules.map((m) {
+        return {
+          'level': m['level'] ?? 'first-year',
+          'name': m['name'] ?? '',
+        };
+      }).toList();
+
+      final data = {
         'user_id': userId,
         'full_name': fullName,
         'student_number': studentNumber,
         'year_of_study': yearOfStudy,
-        'modules': modules,
+        'modules': modulesJson, // Must be a list of maps
         'meets_requirements': meetsRequirements,
+        'supporting_document_url': documentUrl,
         'status': 'pending',
         'submitted_at': DateTime.now().toIso8601String(),
-      }).select();
+      };
+
+      print('Sending data: ${data.toString()}');
+
+      final response = await _supabase
+          .from('applications')
+          .insert(data)
+          .select(); // .select() is fine when data is correct
 
       if (response.isNotEmpty) {
         await fetchApplications();
@@ -95,6 +137,7 @@ class ApplicationViewModel extends ChangeNotifier {
       return false;
     } catch (e) {
       _errorMessage = e.toString();
+      print('Add error: $e');
       return false;
     } finally {
       _isLoading = false;
@@ -102,6 +145,9 @@ class ApplicationViewModel extends ChangeNotifier {
     }
   }
 
+  // ============================================================
+  // FIXED: updateApplication
+  // ============================================================
   Future<bool> updateApplication({
     required String id,
     required String fullName,
@@ -109,6 +155,7 @@ class ApplicationViewModel extends ChangeNotifier {
     required int yearOfStudy,
     required List<Map<String, String>> modules,
     required bool meetsRequirements,
+    String? documentUrl,
   }) async {
     _isLoading = true;
     _errorMessage = null;
@@ -121,23 +168,37 @@ class ApplicationViewModel extends ChangeNotifier {
         return false;
       }
 
+      // Format modules as JSON array of objects
+      final List<Map<String, dynamic>> formattedModules = modules.map((module) {
+        return {
+          'level': module['level'] ?? 'first-year',
+          'name': module['name'] ?? '',
+        };
+      }).toList();
+
       final updatedData = {
         'full_name': fullName,
         'student_number': studentNumber,
         'year_of_study': yearOfStudy,
-        'modules': modules,
+        'modules': formattedModules,
         'meets_requirements': meetsRequirements,
+        'supporting_document_url': documentUrl,
         'updated_at': DateTime.now().toIso8601String(),
       };
 
-      await _supabase.from('applications').update(updatedData).match({
-        'id': id,
-      });
+      print('Updating application $id with: $updatedData');
+
+      await _supabase
+          .from('applications')
+          .update(updatedData)
+          .match({'id': id});
 
       await fetchApplications();
+      print('Application updated successfully!');
       return true;
     } catch (e) {
       _errorMessage = e.toString();
+      print('Update error: $e');
       return false;
     } finally {
       _isLoading = false;
@@ -145,7 +206,6 @@ class ApplicationViewModel extends ChangeNotifier {
     }
   }
 
-  // Delete application
   Future<bool> deleteApplication(String id) async {
     _isLoading = true;
     _errorMessage = null;
