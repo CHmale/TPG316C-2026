@@ -1,7 +1,20 @@
-// lib/views/student/application_detail_view.dart
+// MEMBERS:
+// - Malejane HC 222025549
+// - Mokhele KD 221037680
+// - Manala E 222057458
+// - Mohlohlo K 223010767
+// - Modise LS 222021816
+// - Nomankonya 216006365
+// - Waeza LP 222041368
+// ============================================================
+// FILE: application_detail_view.dart
+// DESCRIPTION: Application Details - View/Delete (Assignment 1.4)
+// ============================================================
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/application_viewmodel.dart';
+import '../../main.dart';
 
 class ApplicationDetailView extends StatelessWidget {
   final String applicationId;
@@ -11,22 +24,16 @@ class ApplicationDetailView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Application Details')),
+      appBar: AppBar(
+        title: const Text('Application Details'),
+        backgroundColor: CUTColors.primaryBlue,
+      ),
       body: Consumer<ApplicationViewModel>(
         builder: (context, appVM, child) {
           final application = appVM.getApplicationById(applicationId);
 
           if (application == null) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.error_outline, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text('Application not found'),
-                ],
-              ),
-            );
+            return const Center(child: Text('Application not found'));
           }
 
           return SingleChildScrollView(
@@ -34,114 +41,73 @@ class ApplicationDetailView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Status Card
                 _buildStatusCard(application),
                 const SizedBox(height: 16),
-
-                // Personal Information
-                _buildInfoCard(
-                  title: 'Personal Information',
-                  icon: Icons.person,
-                  children: [
-                    _buildInfoRow('Full Name', application.fullName),
-                    _buildInfoRow('Student Number', application.studentNumber),
-                    _buildInfoRow(
-                      'Year of Study',
-                      _getYearString(application.yearOfStudy),
-                    ),
-                  ],
-                ),
+                _buildInfoCard('Personal Information', Icons.person, [
+                  _buildInfoRow('Full Name', application.fullName),
+                  _buildInfoRow('Student Number', application.studentNumber),
+                  _buildInfoRow(
+                    'Year of Study',
+                    _getYearString(application.yearOfStudy),
+                  ),
+                ]),
                 const SizedBox(height: 16),
-
-                // Selected Modules
-                _buildInfoCard(
-                  title: 'Selected Modules (${application.moduleCount})',
-                  icon: Icons.book,
-                  children: [
-                    ...application.modules.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final module = entry.value;
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              width: 28,
-                              height: 28,
-                              decoration: BoxDecoration(
-                                color: Colors.blue.shade100,
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  '${index + 1}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blue.shade700,
-                                  ),
-                                ),
-                              ),
+                _buildInfoCard('Selected Modules', Icons.book, [
+                  ...application.modules.asMap().entries.map((entry) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: CUTColors.primaryBlue.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(14),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    module['name'] ?? '',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 15,
-                                    ),
-                                  ),
-                                  Text(
-                                    _getLevelString(module['level'] ?? ''),
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // Eligibility
-                _buildInfoCard(
-                  title: 'Eligibility',
-                  icon: Icons.verified,
-                  children: [
-                    _buildInfoRow(
-                      'Meets Requirements',
-                      application.meetsRequirements ? 'Yes' : 'No',
-                      valueColor: application.meetsRequirements
-                          ? Colors.green
-                          : Colors.red,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // Admin Comments
-                if (application.adminComments != null &&
-                    application.adminComments!.isNotEmpty)
-                  _buildInfoCard(
-                    title: 'Admin Comments',
-                    icon: Icons.comment,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Text(application.adminComments!),
+                            child: Center(child: Text('${entry.key + 1}')),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(child: Text(entry.value['name'] ?? '')),
+                        ],
                       ),
-                    ],
+                    );
+                  }).toList(),
+                ]),
+                const SizedBox(height: 16),
+                _buildInfoCard('Supporting Document', Icons.attach_file, [
+                  if (application.hasDocument)
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.insert_drive_file,
+                          color: CUTColors.success,
+                        ),
+                        const SizedBox(width: 8),
+                        const Text('Document attached'),
+                        const Spacer(),
+                        TextButton(onPressed: () {}, child: const Text('View')),
+                      ],
+                    )
+                  else
+                    const Text(
+                      'No document attached',
+                      style: TextStyle(color: CUTColors.mediumGray),
+                    ),
+                ]),
+                const SizedBox(height: 16),
+                _buildInfoCard('Eligibility', Icons.verified, [
+                  _buildInfoRow(
+                    'Meets Requirements',
+                    application.meetsRequirements ? 'Yes' : 'No',
+                  ),
+                ]),
+                if (application.adminComments != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: _buildInfoCard('Admin Comments', Icons.comment, [
+                      Text(application.adminComments!),
+                    ]),
                   ),
               ],
             ),
@@ -152,31 +118,33 @@ class ApplicationDetailView extends StatelessWidget {
   }
 
   Widget _buildStatusCard(application) {
-    Color statusColor;
-    IconData statusIcon;
-    String statusText;
+    Color color;
+    String text;
+    IconData icon;
 
     switch (application.status) {
       case 'approved':
-        statusColor = Colors.green;
-        statusIcon = Icons.check_circle;
-        statusText = 'Approved';
+        color = CUTColors.success;
+        text = 'Approved';
+        icon = Icons.check_circle;
         break;
       case 'rejected':
-        statusColor = Colors.red;
-        statusIcon = Icons.cancel;
-        statusText = 'Rejected';
+        color = CUTColors.error;
+        text = 'Rejected';
+        icon = Icons.cancel;
         break;
       default:
-        statusColor = Colors.orange;
-        statusIcon = Icons.pending;
-        statusText = 'Pending Review';
+        color = CUTColors.warning;
+        text = 'Pending Review';
+        icon = Icons.pending;
     }
 
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: statusColor.withOpacity(0.1),
+    return Container(
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
@@ -184,10 +152,10 @@ class ApplicationDetailView extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.2),
+                color: color.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(statusIcon, size: 32, color: statusColor),
+              child: Icon(icon, size: 28, color: color),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -196,26 +164,17 @@ class ApplicationDetailView extends StatelessWidget {
                 children: [
                   const Text(
                     'Application Status',
-                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                    style: TextStyle(color: CUTColors.mediumGray),
                   ),
                   Text(
-                    statusText,
+                    text,
                     style: TextStyle(
-                      fontSize: 22,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: statusColor,
+                      color: color,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Submitted: ${_formatDate(application.submittedAt)}',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                  if (application.updatedAt != null)
-                    Text(
-                      'Last Updated: ${_formatDate(application.updatedAt!)}',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
+                  Text('Submitted: ${_formatDate(application.submittedAt)}'),
                 ],
               ),
             ),
@@ -225,14 +184,8 @@ class ApplicationDetailView extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoCard({
-    required String title,
-    required IconData icon,
-    required List<Widget> children,
-  }) {
+  Widget _buildInfoCard(String title, IconData icon, List<Widget> children) {
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -240,25 +193,18 @@ class ApplicationDetailView extends StatelessWidget {
           children: [
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(icon, size: 20, color: Colors.blue),
-                ),
-                const SizedBox(width: 12),
+                Icon(icon, color: CUTColors.primaryBlue),
+                const SizedBox(width: 8),
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
             ),
-            const Divider(height: 24),
+            const Divider(),
             ...children,
           ],
         ),
@@ -266,54 +212,25 @@ class ApplicationDetailView extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(String label, String value, {Color? valueColor}) {
+  Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 130,
-            child: Text(label, style: const TextStyle(color: Colors.grey)),
-          ),
-          Expanded(
+            width: 120,
             child: Text(
-              value,
-              style: TextStyle(fontWeight: FontWeight.w500, color: valueColor),
+              label,
+              style: const TextStyle(color: CUTColors.mediumGray),
             ),
           ),
+          Expanded(child: Text(value)),
         ],
       ),
     );
   }
 
-  String _getYearString(int year) {
-    switch (year) {
-      case 1:
-        return '1st Year';
-      case 2:
-        return '2nd Year';
-      case 3:
-        return '3rd Year';
-      default:
-        return '$year Year';
-    }
-  }
-
-  String _getLevelString(String level) {
-    switch (level) {
-      case 'first-year':
-        return 'First Year';
-      case 'second-year':
-        return 'Second Year';
-      case 'third-year':
-        return 'Third Year';
-      default:
-        return level;
-    }
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
-  }
+  String _getYearString(int year) =>
+      ['1st Year', '2nd Year', '3rd Year'][year - 1];
+  String _formatDate(DateTime date) => '${date.day}/${date.month}/${date.year}';
 }
