@@ -1,4 +1,27 @@
-// viewmodels/auth_viewmodel.dart
+// ============================================================
+// FILE: auth_viewmodel.dart
+// GROUP: W3M
+// MEMBERS:
+// - Malejane HC 222025549
+// - Mokhele KD 221037680
+// - Manala E 222057458
+// - Mohlohlo K 223010767
+// - Modise LS 222021816
+// - Nomankonya 216006365
+// - Waeza LP 222041368
+// DATE: May 2026
+// ============================================================
+// DESCRIPTION:
+// Authentication ViewModel - manages user authentication,
+// session state, and role-based routing.
+// ============================================================
+// LEARNING OBJECTIVES COVERED:
+// - Unit 2: ViewModel extends ChangeNotifier
+// - Unit 2: Private Model instance, public getters
+// - Unit 2: notifyListeners() for UI updates
+// - Unit 5: Supabase Authentication (signUp, signIn, signOut)
+// ============================================================
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_model.dart';
@@ -16,7 +39,9 @@ class AuthViewModel extends ChangeNotifier {
   bool get isLoggedIn => _supabase.auth.currentSession != null;
   bool get isAdmin => _currentUser?.role == 'admin';
 
-  // Sign In
+  // ============================================================
+  // SIGN IN - Assignment 1.1
+  // ============================================================
   Future<bool> signIn(String email, String password) async {
     _isLoading = true;
     _errorMessage = null;
@@ -42,10 +67,9 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  // Sign Up
-  // viewmodels/auth_viewmodel.dart
-  // Update the signUp method
-
+  // ============================================================
+  // SIGN UP - Assignment 1.1
+  // ============================================================
   Future<bool> signUp({
     required String email,
     required String password,
@@ -58,7 +82,6 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Step 1: Create auth user
       final response = await _supabase.auth.signUp(
         email: email.trim(),
         password: password,
@@ -67,9 +90,8 @@ class AuthViewModel extends ChangeNotifier {
       if (response.user != null) {
         final userId = response.user!.id;
 
-        // Step 2: Create user profile
         final userData = {
-          'id': userId, // IMPORTANT: Include the ID matching auth.users
+          'id': userId,
           'email': email.trim(),
           'role': 'student',
           'full_name': fullName,
@@ -78,22 +100,13 @@ class AuthViewModel extends ChangeNotifier {
           'created_at': DateTime.now().toIso8601String(),
         };
 
-        // Step 3: Insert into users table
-        try {
-          await _supabase.from('users').insert(userData);
-        } catch (insertError) {
-          // If insert fails, try to update instead (profile might already exist)
-          print('Insert error, trying upsert: $insertError');
-          await _supabase.from('users').upsert(userData);
-        }
-
+        await _supabase.from('users').insert(userData);
         await _loadUserProfile(userId);
         return true;
       }
       return false;
     } catch (e) {
       _errorMessage = e.toString();
-      print('SignUp error: $e');
       return false;
     } finally {
       _isLoading = false;
@@ -101,21 +114,19 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  // Sign Out
+  // ============================================================
+  // SIGN OUT
+  // ============================================================
   Future<void> signOut() async {
     await _supabase.auth.signOut();
     _currentUser = null;
     notifyListeners();
   }
 
-  // Load user profile
   Future<void> _loadUserProfile(String userId) async {
     try {
-      final response = await _supabase
-          .from('users')
-          .select()
-          .eq('id', userId)
-          .maybeSingle();
+      final response =
+          await _supabase.from('users').select().eq('id', userId).maybeSingle();
 
       if (response != null) {
         _currentUser = UserModel.fromJson(response);
@@ -125,7 +136,6 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  // Check session on app start
   Future<void> checkSession() async {
     final session = _supabase.auth.currentSession;
     if (session != null && _currentUser == null) {
